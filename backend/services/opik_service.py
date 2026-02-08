@@ -7,8 +7,10 @@ from config import settings
 
 try:
     import opik  # type: ignore
+    from opik import opik_context  # type: ignore
 except Exception:  # pragma: no cover
     opik = None
+    opik_context = None
 
 T = TypeVar("T", bound=Callable)
 
@@ -33,3 +35,17 @@ def track(name: str) -> Callable[[T], T]:
         return func
 
     return decorator
+
+
+def set_trace_context(thread_id: str | None = None, metadata: dict | None = None, tags: list[str] | None = None) -> None:
+    if not opik_context:
+        return
+    try:
+        opik_context.update_current_trace(
+            thread_id=thread_id,
+            metadata=metadata,
+            tags=tags,
+        )
+    except Exception:
+        # Avoid breaking the app on tracing issues
+        return

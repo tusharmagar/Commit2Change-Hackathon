@@ -21,7 +21,8 @@ def start_pomodoro(supabase: SupabaseService, user: dict, message: str) -> str:
         cycle_break_minutes=rest,
     )
     return (
-        f"⏱ Focus session started! {work} minutes of work time. I'll let you know when it's time for a break."
+        f"⏱ Focus started — {work} min work / {rest} min break.\n"
+        "I'll ping you at each transition. Send 'stop' to end."
     )
 
 
@@ -35,8 +36,8 @@ def stop_pomodoro(supabase: SupabaseService, user: dict) -> tuple[str, dict]:
             {"status": "cancelled", "end_time": now.isoformat()},
         )
     if not active:
-        return "No active session to stop.", {"context": "idle", "data": {}}
-    response = "Session stopped. What were you working on?"
+        return "No active focus session right now.", {"context": "idle", "data": {}}
+    response = "⏹️ Stopped. Quick note — what did you work on?"
     context = {"context": "awaiting_pomodoro_summary", "data": {"session_id": active[0]["id"]}}
     return response, context
 
@@ -59,15 +60,15 @@ def handle_backfill(supabase: SupabaseService, user: dict, backfill: dict) -> st
         what_did_you_do=description,
     )
     return (
-        f"Got it! Logged {duration} minutes of work on '{description}' from {start_time.strftime('%-I:%M %p')} "
-        f"to {end_time.strftime('%-I:%M %p')}."
+        f"Logged {duration} minutes — {description}\n"
+        f"{start_time.strftime('%-I:%M %p')} → {end_time.strftime('%-I:%M %p')}"
     )
 
 
 @track(name="pomodoro_handler")
 def handle_summary(supabase: SupabaseService, session_id: str, message: str) -> str:
     supabase.update_pomodoro_session(session_id, {"what_did_you_do": message, "status": "completed"})
-    return "Nice. Logged your session summary."
+    return "Nice — logged your session summary."
 
 
 def get_stats(supabase: SupabaseService, user: dict, start_iso: str, end_iso: str) -> str:
@@ -92,9 +93,9 @@ def get_stats(supabase: SupabaseService, user: dict, start_iso: str, end_iso: st
         if session.get("what_did_you_do"):
             items.append(f"- {session['what_did_you_do']}")
     hours = round(total_minutes / 60, 2)
-    summary = f"Today you've focused for {hours} hours across {len(sessions)} sessions."
+    summary = f"Today's focus: {hours} hours across {len(sessions)} sessions."
     if items:
-        summary += "\nHere's what you did:\n" + "\n".join(items)
+        summary += "\n\nWhat you did:\n" + "\n".join(items)
     return summary
 
 

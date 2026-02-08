@@ -4,9 +4,10 @@ import asyncio
 from datetime import datetime, timezone
 
 from config import settings
-from services.opik_service import track
+from services.opik_service import set_trace_context, track
 from services.supabase_service import SupabaseService
 from services.twilio_service import TwilioService
+from utils.thread_utils import phone_hash, thread_id_for_day
 
 
 class TimerService:
@@ -58,6 +59,16 @@ class TimerService:
                 continue
             user = user[0]
             phone_number = user["phone_number"]
+            thread_id = thread_id_for_day(phone_number, user.get("timezone", "UTC"))
+            set_trace_context(
+                thread_id=thread_id,
+                metadata={
+                    "user_id": user.get("id"),
+                    "phone_hash": phone_hash(phone_number),
+                    "feature": "pomodoro",
+                },
+                tags=["whatsapp", "system"],
+            )
 
             if session["session_type"] == "work":
                 # Start break immediately (use session cycle if present)
@@ -73,7 +84,8 @@ class TimerService:
                 )
                 self.twilio.send_message(
                     phone_number,
-                    f"⏱ Time's up! Take a {break_minutes}-minute break. Quick question — what did you work on?",
+                    f"⏱ Work block complete! Take a {break_minutes}-minute break.\n"
+                    "Quick check-in — what did you work on?",
                 )
                 self.supabase.upsert_state(
                     user_id,
@@ -99,7 +111,8 @@ class TimerService:
                 )
                 self.twilio.send_message(
                     phone_number,
-                    f"Break's over! Starting {work_minutes}-minute focus session now. Send 'stop' to end.",
+                    f"✅ Break over. Starting a {work_minutes}-minute focus block now.\n"
+                    "Send 'stop' anytime to end.",
                 )
 
     async def _check_task_reminders(self) -> None:
@@ -113,6 +126,16 @@ class TimerService:
             if not user:
                 continue
             phone_number = user[0]["phone_number"]
+            thread_id = thread_id_for_day(phone_number, user[0].get("timezone", "UTC"))
+            set_trace_context(
+                thread_id=thread_id,
+                metadata={
+                    "user_id": user_id,
+                    "phone_hash": phone_hash(phone_number),
+                    "feature": "task_reminder",
+                },
+                tags=["whatsapp", "system"],
+            )
             self.twilio.send_message(phone_number, f"⏰ Reminder: {task['title']}")
             self.supabase.mark_task_reminder_sent(task["id"])
 
@@ -129,6 +152,22 @@ class TimerService:
             nudged = data.get("summary_nudged")
             if not requested_at or nudged:
                 continue
+            user = self.supabase._execute(
+                self.supabase.client.table("users").select("*").eq("id", state["user_id"]).limit(1)
+            )
+            tz = "UTC"
+            if user:
+                tz = user[0].get("timezone", "UTC")
+            thread_id = thread_id_for_day(state["phone_number"], tz)
+            set_trace_context(
+                thread_id=thread_id,
+                metadata={
+                    "user_id": state.get("user_id"),
+                    "phone_hash": phone_hash(state["phone_number"]),
+                    "feature": "pomodoro_nudge",
+                },
+                tags=["whatsapp", "system"],
+            )
             try:
                 requested_dt = datetime.fromisoformat(requested_at.replace("Z", "+00:00"))
                 if requested_dt.tzinfo is None:
@@ -136,6 +175,9 @@ class TimerService:
             except Exception:
                 continue
             if (now - requested_dt).total_seconds() >= settings.POMODORO_NUDGE_SECONDS:
-                self.twilio.send_message(state["phone_number"], "Quick reminder: what did you work on?")
+                self.twilio.send_message(
+                    state["phone_number"],
+                    "Quick reminder — what did you work on in that last focus session?",
+                )
                 data["summary_nudged"] = True
                 self.supabase.upsert_state(state["user_id"], state["phone_number"], "awaiting_pomodoro_summary", data)

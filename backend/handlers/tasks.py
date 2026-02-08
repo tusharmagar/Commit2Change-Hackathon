@@ -18,15 +18,15 @@ def add_task(
     reminder_time = extracted.get("reminder_time")
     supabase.insert_task(user["id"], title, message, reminder_time)
     if reminder_time:
-        return f"Task saved. I'll remind you at {reminder_time.strftime('%-I:%M %p')}."
-    return "Task saved."
+        return f"✅ Task saved. ⏰ Reminder set for {reminder_time.strftime('%-I:%M %p')}."
+    return "✅ Task saved."
 
 
 def list_tasks(supabase: SupabaseService, user: dict) -> Tuple[str, dict]:
     tasks = supabase.list_incomplete_tasks(user["id"])
     if not tasks:
-        return "You're all caught up — no open tasks!", {"context": "idle", "data": {}}
-    lines = ["Your tasks:"]
+        return "✅ You're all caught up. No open tasks.", {"context": "idle", "data": {}}
+    lines = ["Open tasks:"]
     id_map = []
     for idx, task in enumerate(tasks, start=1):
         title = task["title"]
@@ -36,7 +36,7 @@ def list_tasks(supabase: SupabaseService, user: dict) -> Tuple[str, dict]:
         else:
             lines.append(f"{idx}. {title}")
         id_map.append(task["id"])
-    lines.append("Reply with a number to mark it done!")
+    lines.append("Reply with a number to mark one done.")
     return "\n".join(lines), {"context": "awaiting_task_completion", "data": {"task_ids": id_map}}
 
 

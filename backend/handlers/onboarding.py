@@ -23,9 +23,12 @@ def handle_onboarding(
     if step == "welcome":
         supabase.update_user(user["id"], {"onboarding_step": "name", "onboarding_complete": False})
         text = (
-            "Hey! I'm your productivity buddy on WhatsApp. I can help you with 3 things: "
-            "⏱ Focus tracking (Pomodoro timer), ✅ Task management, and 🍎 Calorie tracking. "
-            "Let's set you up! What's your name?"
+            "Hey! I'm Dash — your WhatsApp productivity copilot.\n\n"
+            "I can help you:\n"
+            "• ⏱ Run focus sessions (Pomodoro)\n"
+            "• ✅ Capture tasks fast\n"
+            "• 🍎 Log meals & calories\n\n"
+            "Let's get you set up. What's your name?"
         )
         return text, {"context": "onboarding"}
 
@@ -33,27 +36,34 @@ def handle_onboarding(
         name = _extract_name(message)
         supabase.update_user(user["id"], {"name": name, "onboarding_step": "features"})
         text = (
-            f"Nice to meet you, {name}! Which features do you want to use? Reply with the numbers: "
-            "1️⃣ Focus timer  2️⃣ Tasks  3️⃣ Calorie tracking  (e.g. reply '1 2 3' for all)"
+            f"Nice to meet you, {name}!\n\n"
+            "Which features do you want to use?\n"
+            "1️⃣ Focus (Pomodoro)\n"
+            "2️⃣ Tasks\n"
+            "3️⃣ Calories\n\n"
+            "Reply with numbers (e.g. 1 2 3 for all)."
         )
         return text, {"context": "onboarding"}
 
     if step == "features":
         features = _parse_features(message)
         if not features:
-            return "Please reply with numbers like '1 2 3' for the features you want.", {"context": "onboarding"}
+            return "Please reply with numbers like 1 2 3 (example: 1 3).", {"context": "onboarding"}
         supabase.update_user(user["id"], {"features_enabled": features, "onboarding_step": "pomodoro_prefs"})
         if "pomodoro" in features:
             text = (
-                "How long do you like to focus for? (default: 25 min work, 5 min break). "
-                "Reply like '45 10' for 45min work and 10min break, or just 'ok' for defaults."
+                "What's your default focus cycle?\n"
+                "Example: 45 10 (work/break)\n"
+                "Or reply 'ok' to use 25/5."
             )
             return text, {"context": "onboarding"}
         if "calories" in features:
             supabase.update_user(user["id"], {"onboarding_step": "calorie_goal"})
-            return "What's your daily calorie goal? (e.g. 2000). Or reply 'skip' to set it later.", {
-                "context": "onboarding"
-            }
+            return (
+                "What's your daily calorie goal?\n"
+                "Example: 2000\n"
+                "Or reply 'skip' to set it later."
+            ), {"context": "onboarding"}
         return _finish_onboarding(supabase, user)
 
     if step == "pomodoro_prefs":
@@ -63,9 +73,11 @@ def handle_onboarding(
         features = user.get("features_enabled") or []
         if "calories" in features:
             supabase.update_user(user["id"], {"onboarding_step": "calorie_goal"})
-            return "What's your daily calorie goal? (e.g. 2000). Or reply 'skip' to set it later.", {
-                "context": "onboarding"
-            }
+            return (
+                "What's your daily calorie goal?\n"
+                "Example: 2000\n"
+                "Or reply 'skip' to set it later."
+            ), {"context": "onboarding"}
         return _finish_onboarding(supabase, user)
 
     if step == "calorie_goal":
@@ -80,8 +92,12 @@ def handle_onboarding(
 def _finish_onboarding(supabase: SupabaseService, user: dict) -> Tuple[str, dict]:
     supabase.update_user(user["id"], {"onboarding_complete": True, "onboarding_step": "done"})
     text = (
-        "You're all set! Here's what you can do: start/stop pomodoro, add tasks, log meals, "
-        "or just chat naturally. Send /help anytime for commands."
+        "You're all set!\n\n"
+        "Quick starts:\n"
+        "• start (or start 45 10)\n"
+        "• tasks\n"
+        "• calories\n\n"
+        "Send /help anytime."
     )
     return text, {"context": "idle"}
 

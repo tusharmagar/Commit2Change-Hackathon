@@ -21,10 +21,11 @@ from handlers.pomodoro import (
 )
 from handlers.tasks import add_task, complete_task, list_tasks, parse_task_completion
 from services.openai_service import OpenAIService
-from services.opik_service import track
+from services.opik_service import set_trace_context, track
 from services.supabase_service import SupabaseService
 from services.twilio_service import TwilioService
 from utils.time_utils import day_range_utc
+from utils.thread_utils import phone_hash, thread_id_for_day
 
 
 class MessageRouter:
@@ -39,9 +40,19 @@ class MessageRouter:
             user = self.supabase.get_or_create_user(phone_number)
         except Exception:
             return (
-                "Server is misconfigured and can't reach the database right now. "
-                "Please verify SUPABASE_URL and SUPABASE_SECRET_KEY."
+                "I'm having trouble reaching the database right now. "
+                "Please check SUPABASE_URL and SUPABASE_SECRET_KEY."
             )
+
+        thread_id = thread_id_for_day(phone_number, user.get("timezone", "UTC"))
+        set_trace_context(
+            thread_id=thread_id,
+            metadata={
+                "user_id": user.get("id"),
+                "phone_hash": phone_hash(phone_number),
+            },
+            tags=["whatsapp", "router"],
+        )
         state = self.supabase.get_state(user["id"])
         context = state.get("current_context") if state else None
         context_data = state.get("context_data") if state else {}
@@ -60,7 +71,7 @@ class MessageRouter:
             if session_id:
                 reply = handle_summary(self.supabase, session_id, message)
             else:
-                reply = "Thanks!"
+                reply = "Thanks — got it!"
             self.supabase.upsert_state(user["id"], phone_number, "idle", {})
             return reply
 
@@ -118,7 +129,7 @@ class MessageRouter:
                 task_ids = state.get("context_data", {}).get("task_ids", [])
                 if 1 <= idx <= len(task_ids):
                     return complete_task(self.supabase, task_ids[idx - 1])
-            return "Reply with a number from your task list to mark it done."
+            return "Reply with the number from your task list to mark it done."
         if intent_name == "calorie_log":
             reply, new_state = log_calorie_text(self.supabase, self.openai, user, message)
             self.supabase.upsert_state(user["id"], phone_number, new_state.get("context"), new_state.get("data", {}))
@@ -131,7 +142,7 @@ class MessageRouter:
         if intent_name == "help":
             return self._help_text()
 
-        return "I can help with pomodoro, tasks, and calories. Send /help for commands."
+        return "I can help with focus, tasks, and calories. Try: start, tasks, calories, /help."
 
     def _handle_command(self, user: dict, phone_number: str, message: str) -> Optional[str]:
         lowered = message.lower()
@@ -157,9 +168,9 @@ class MessageRouter:
         if lowered.startswith("done"):
             idx = parse_task_completion(message)
             if not idx:
-                return "Reply with a number to mark a task done (e.g. 'done 1')."
+                return "Reply with a number to mark a task done (e.g. done 1)."
             if not user:
-                return "No tasks found."
+                return "I don't have an active task list. Send 'tasks' first."
             state = self.supabase.get_state(user["id"])
             task_ids = (state or {}).get("context_data", {}).get("task_ids", [])
             if 1 <= idx <= len(task_ids):
@@ -174,15 +185,15 @@ class MessageRouter:
 
     def _help_text(self) -> str:
         return (
-            "Commands:\n"
-            "start — start a pomodoro\n"
-            "start 45 10 — custom work/break\n"
-            "stop — stop current pomodoro\n"
-            "stats — today's focus summary\n"
-            "tasks — list tasks\n"
-            "done 1 — complete a task\n"
-            "calories — daily calorie summary\n"
-            "goal 2000 — set calorie goal\n"
-            "/onboarding — re-run onboarding\n"
-            "/help — show this help"
+            "Quick commands:\n"
+            "• start — begin a focus cycle\n"
+            "• start 45 10 — custom work/break\n"
+            "• stop — end the current cycle\n"
+            "• stats — today's focus summary\n"
+            "• tasks — list open tasks\n"
+            "• done 1 — complete a task\n"
+            "• calories — daily calorie summary\n"
+            "• goal 2000 — set a calorie goal\n"
+            "• /onboarding — re-run setup\n"
+            "• /help — show this menu"
         )
