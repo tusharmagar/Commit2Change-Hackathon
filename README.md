@@ -1,44 +1,35 @@
-# WhatsApp Productivity Bot
+# Tomatose!
 
-Backend-first rebuild aligned with `whatsapp-productivity-bot-plan.md`.
+[Demo video](https://youtu.be/UAJfhZ6YaJQ)
 
-## Backend Setup
+Tomatose! is a WhatsApp productivity copilot that turns quick texts (and meal photos) into a clean, day-wise dashboard.
 
+## What You Can Do
+- ⏱ Pomodoro that keeps cycling until you say `stop` (with lightweight “what did you do?” journaling)
+- ✅ Text-to-task capture + reminders
+- 🍎 Meal logging from text or images (estimate → confirm → saved)
+- 📊 Day-wise dashboard for focus, tasks, and calories
+
+## Try It
+- WhatsApp: say `start 25 5`, `stop`, `tasks`, `done 1`, `calories`, `goal 2000`, `/help`
+- Dashboard: open `/dashboard` on the deployed URL and log in with your name + WhatsApp number
+
+## Repo Notes
+- Backend: FastAPI + Twilio + Supabase + OpenAI
+- Observability: Opik traces grouped by user + day
+- Full spec/roadmap: `whatsapp-productivity-bot-plan.md`
+
+## Run Locally (Optional)
 ```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-```
-
-Fill `.env` with your credentials, then run:
-
-```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Supabase
-
-1. Create a Supabase project
-2. Run `scripts/setup_supabase.sql` in the SQL editor
-3. Copy `SUPABASE_URL` and `SUPABASE_SECRET_KEY` into `.env`
-
-## Twilio Webhook
-
-Set your WhatsApp webhook to:
-
-```
-https://YOUR_PUBLIC_URL/webhook
-```
-
-Use ngrok during local development:
-
+If you’re wiring Twilio locally:
 ```bash
 ngrok http 8000
 ```
-
-## Notes
-
-- Frontend is deferred. Backend-only for now.
-- See `whatsapp-productivity-bot-plan.md` for the full spec and roadmap.
