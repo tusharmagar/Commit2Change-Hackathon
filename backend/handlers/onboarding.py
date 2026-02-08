@@ -23,7 +23,7 @@ def handle_onboarding(
     if step == "welcome":
         supabase.update_user(user["id"], {"onboarding_step": "name", "onboarding_complete": False})
         text = (
-            "Hey! I'm Dash — your WhatsApp productivity copilot.\n\n"
+            "Hey! I'm Tomatose! — your WhatsApp productivity copilot.\n\n"
             "I can help you:\n"
             "• ⏱ Run focus sessions (Pomodoro)\n"
             "• ✅ Capture tasks fast\n"
