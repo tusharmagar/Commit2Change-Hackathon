@@ -1,0 +1,10 @@
+Parse a backfill work log from the user's message.
+
+Return JSON:
+{
+  "start_time": "Start datetime or null",
+  "end_time": "End datetime or null",
+  "description": "Short description of the work"
+}
+
+If times are missing, set them to null.

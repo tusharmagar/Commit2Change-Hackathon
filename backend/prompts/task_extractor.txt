@@ -1,0 +1,9 @@
+Extract a task from the user's message.
+
+Return JSON:
+{
+  "title": "Short task title",
+  "reminder_time": "Optional datetime for a reminder, or null"
+}
+
+If the message doesn't contain a reminder, set reminder_time to null.

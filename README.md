@@ -1,53 +1,44 @@
-# Tomatose WhatsApp Bot
+# WhatsApp Productivity Bot
 
-WhatsApp chatbot that logs pomodoro sessions, tasks, and meals into a Notion workspace using Notion MCP.
+Backend-first rebuild aligned with `whatsapp-productivity-bot-plan.md`.
 
-## Setup
-
-1. Create a virtualenv and install deps:
+## Backend Setup
 
 ```bash
+cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
 ```
 
-2. Create `.env` from `.env.example` and fill in values.
-
-3. Authenticate Notion MCP (one-time):
+Fill `.env` with your credentials, then run:
 
 ```bash
-python scripts/notion_oauth.py
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-4. Run the server:
+## Supabase
+
+1. Create a Supabase project
+2. Run `scripts/setup_supabase.sql` in the SQL editor
+3. Copy `SUPABASE_URL` and `SUPABASE_SECRET_KEY` into `.env`
+
+## Twilio Webhook
+
+Set your WhatsApp webhook to:
+
+```
+https://YOUR_PUBLIC_URL/webhook
+```
+
+Use ngrok during local development:
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+ngrok http 8000
 ```
-
-5. Configure Twilio WhatsApp webhook:
-
-Set the incoming webhook to:
-
-```
-{PUBLIC_BASE_URL}/webhooks/twilio/whatsapp
-```
-
-## Notion setup
-
-The bot looks for a Notion page called `Tomatose!` and expects three child databases:
-
-- `Daily Journal`
-- `Tasks`
-- `Calorie Tracker`
-
-If auto-discovery fails, set `NOTION_*_DB_ID` in `.env`.
-
-Property names can be customized via `.env` if your schema differs.
 
 ## Notes
 
-- Pomodoro cycles keep running until you send `stop`.
-- Meal logging uses an image → JSON estimate via OpenAI vision.
-- User memory and preferences are stored locally under `data/`.
+- Frontend is deferred. Backend-only for now.
+- See `whatsapp-productivity-bot-plan.md` for the full spec and roadmap.

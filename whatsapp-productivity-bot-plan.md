@@ -412,7 +412,7 @@ whatsapp-productivity-bot/
 │   ├── main.py                     # FastAPI app, webhook endpoint, timer polling loop
 │   ├── config.py                   # Environment variables, API keys
 │   ├── requirements.txt
-│   ├── Procfile                    # For Railway: web: gunicorn -k uvicorn.workers.UvicornWorker app.main:app
+│   ├── Procfile                    # For Railway: web: uvicorn main:app --host 0.0.0.0 --port $PORT
 │   ├── .env                        # API keys (gitignored)
 │   ├── .env.example                # Template for API keys
 │   │
@@ -548,7 +548,7 @@ Railway gives you a free $5/month credit — more than enough for a hackathon de
 4. Go to **Settings** for the service:
    - **Root Directory:** `backend`
    - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
 5. Go to **Variables** tab → add all the env vars from the backend `.env` above
 6. Railway auto-generates a public URL like `your-app-production.up.railway.app`
 7. Copy that URL → go to Twilio sandbox settings → set webhook to: `https://your-app-production.up.railway.app/webhook`

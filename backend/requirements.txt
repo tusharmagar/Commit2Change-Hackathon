@@ -3,11 +3,10 @@ uvicorn[standard]
 pydantic-settings
 python-dotenv
 twilio
+supabase
 openai
-langchain
-langchain-openai
-langchain-community
 httpx
 dateparser
-tzlocal
-mcp
+tzdata
+opik
+python-multipart
