@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+python-dotenv
+twilio
+openai
+langchain
+langchain-openai
+langchain-community
+httpx
+dateparser
+tzlocal
+mcp
