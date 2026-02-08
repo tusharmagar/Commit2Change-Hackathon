@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://youtu.be/UAJfhZ6YaJQ">
-    <img src="https://img.youtube.com/vi/UAJfhZ6YaJQ/hqdefault.jpg" alt="Tomatose! demo video" width="720" />
+    <img src="https://img.youtube.com/vi/UAJfhZ6YaJQ/hqdefault.jpg?v=2" alt="Tomatose! demo video" width="720" />
   </a>
 </p>
 
