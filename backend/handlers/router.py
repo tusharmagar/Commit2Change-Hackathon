@@ -76,7 +76,9 @@ class MessageRouter:
             return reply
 
         if context == "awaiting_calorie_confirm":
-            reply, new_state = handle_calorie_confirmation(self.supabase, user, message, context_data or {})
+            reply, new_state = handle_calorie_confirmation(
+                self.supabase, self.openai, user, message, context_data or {}
+            )
             self.supabase.upsert_state(user["id"], phone_number, new_state.get("context"), new_state.get("data", {}))
             return reply
 

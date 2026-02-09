@@ -29,17 +29,55 @@ def log_calorie_image(
 
 
 def handle_calorie_confirmation(
-    supabase: SupabaseService, user: dict, message: str, pending: dict
+    supabase: SupabaseService, openai: OpenAIService, user: dict, message: str, pending: dict
 ) -> Tuple[str, dict]:
     lowered = message.strip().lower()
     calories_override = _extract_number(message)
+    looks_like_macro_edit = any(
+        token in lowered
+        for token in {
+            "protein",
+            "proteins",
+            "carb",
+            "carbs",
+            "fat",
+            "fats",
+            "fiber",
+            "fibre",
+            "grams",
+            "gram",
+            "g ",
+            " g",
+        }
+    )
     if lowered in {"yes", "y", "correct", "looks good"}:
         return _save_calorie_log(supabase, user, pending, confirmed=True)
-    if calories_override:
+    if lowered in {"cancel", "never mind", "nevermind", "skip"}:
+        return "Okay — skipped logging that meal.", {"context": "idle", "data": {}}
+    if calories_override and not looks_like_macro_edit:
         pending["calories"] = calories_override
         return _save_calorie_log(supabase, user, pending, confirmed=True)
+    if lowered in {"no", "nope"}:
+        return (
+            "Got it — what should I change?\n"
+            "Examples: 'no skin', 'no oil', '2 pieces', 'add rice', 'swap fries for salad'.",
+            {"context": "awaiting_calorie_confirm", "data": pending},
+        )
+    if message.strip():
+        try:
+            refined = openai.refine_calorie_estimate(
+                pending,
+                message.strip(),
+                user.get("dietary_preferences", ""),
+            )
+            return _build_confirmation_message(refined)
+        except Exception:
+            return (
+                "I couldn't re-estimate right now. Reply 'yes' to log as-is, or send a calorie number to adjust.",
+                {"context": "awaiting_calorie_confirm", "data": pending},
+            )
     return (
-        "Reply 'yes' to log this, or send a new calorie number (e.g. 600) to adjust.",
+        "Reply 'yes' to log this, send a new calorie number to adjust, or describe what to fix (e.g. 'no oil').",
         {"context": "awaiting_calorie_confirm", "data": pending},
     )
 
@@ -83,7 +121,8 @@ def _build_confirmation_message(estimate: dict) -> Tuple[str, dict]:
     text = (
         f"That looks like {description}.\n"
         f"Estimate: {details_text}\n"
-        "Reply 'yes' to log, or send a new calorie number to adjust."
+        "Reply 'yes' to log.\n"
+        "To adjust: send a number (e.g. 600) or describe a fix (e.g. 'no oil', 'no skin', 'add rice')."
     )
     return text, {"context": "awaiting_calorie_confirm", "data": estimate}
 

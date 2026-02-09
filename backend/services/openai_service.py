@@ -77,6 +77,15 @@ class OpenAIService:
         content = response.choices[0].message.content or "{}"
         return json.loads(content)
 
+    def refine_calorie_estimate(self, existing_estimate: dict, correction: str, preferences: str = "") -> dict:
+        prompt = self._load_prompt("calorie_refiner.txt")
+        user_payload = {
+            "existing_estimate": existing_estimate,
+            "correction": correction,
+            "preferences": preferences,
+        }
+        return self._chat_json(prompt, json.dumps(user_payload))
+
     def _parse_datetime(self, value: str | None, timezone: str, prefer: str) -> datetime | None:
         if not value:
             return None
